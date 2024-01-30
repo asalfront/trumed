@@ -1,0 +1,4 @@
+{
+  "commitUrlFormat": "https://stash.scnsoft.com/projects/TRUMED/repos/web.admin/commits/{{hash}}",
+  "compareUrlFormat": "https://stash.scnsoft.com/projects/TRUMED/repos/web.admin/compare/diff?targetBranch=refs%2Ftags%2F{{previousTag}}&sourceBranch=refs%2Ftags%2F{{currentTag}}"
+}

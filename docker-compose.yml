@@ -1,0 +1,8 @@
+services:
+  webadmin:
+    container_name: webadmin
+    build: .
+    ports:
+      - "80:80"
+    env_file:
+      - .env

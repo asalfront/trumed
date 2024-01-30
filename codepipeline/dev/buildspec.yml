@@ -1,0 +1,47 @@
+version: 0.2
+
+env:
+  variables:
+    ECR_URL: "088145074760.dkr.ecr.eu-west-1.amazonaws.com"
+    REPO_NAME: "dev_trumed_aws_ecr_frontend"
+  parameter-store:
+    DOCKER_TOKEN: /trumed/DOCKER_TOKEN
+    REACT_APP_API_BASE_URL: /trumed/dev/frontend/REACT_APP_API_BASE_URL
+    REACT_APP_API_PORT: /trumed/dev/frontend/REACT_APP_API_PORT
+    REACT_APP_GOOGLE_PLACES_KEY: /trumed/dev/frontend/REACT_APP_GOOGLE_PLACES_KEY
+    REACT_APP_API_GATEWAY_INVOKE_URL: /trumed/dev/frontend/API_GATEWAY_INVOKE_URL
+    REACT_APP_COGNITO_USER_POOL_ID: /trumed/dev/frontend/COGNITO_USER_POOL_ID
+    REACT_APP_COGNITO_APP_CLIENT_ID: /trumed/dev/frontend/COGNITO_APP_CLIENT_ID
+    REACT_APP_COGNITO_IDENTITY_POOL_ID: /trumed/dev/frontend/COGNITO_IDENTITY_POOL_ID
+    REACT_APP_APP_INSTANCE_ARN: /trumed/dev/frontend/APP_INSTANCE_ARN
+    REACT_APP_REGION: /trumed/dev/frontend/REGION
+    REACT_APP_ATTACHMENTS_S3_BUCKET_NAME: /trumed/dev/frontend/ATTACHMENTS_S3_BUCKET_NAME
+    REACT_APP_API_CHIME_URL: /trumed/dev/frontend/REACT_APP_API_CHIME_URL
+
+phases:
+
+  pre_build:
+    commands:
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - echo $DOCKER_TOKEN | docker login -u trumed --password-stdin
+
+  build:
+    commands:
+      - docker build . -t $ECR_URL/$REPO_NAME:latest --build-arg REACT_APP_API_BASE_URL=$REACT_APP_API_BASE_URL --build-arg REACT_APP_API_PORT=$REACT_APP_API_PORT --build-arg REACT_APP_GOOGLE_PLACES_KEY=$REACT_APP_GOOGLE_PLACES_KEY --build-arg REACT_APP_API_GATEWAY_INVOKE_URL=$REACT_APP_API_GATEWAY_INVOKE_URL --build-arg REACT_APP_COGNITO_USER_POOL_ID=$REACT_APP_COGNITO_USER_POOL_ID --build-arg REACT_APP_COGNITO_APP_CLIENT_ID=$REACT_APP_COGNITO_APP_CLIENT_ID --build-arg REACT_APP_COGNITO_IDENTITY_POOL_ID=$REACT_APP_COGNITO_IDENTITY_POOL_ID --build-arg REACT_APP_APP_INSTANCE_ARN=$REACT_APP_APP_INSTANCE_ARN --build-arg REACT_APP_REGION=$REACT_APP_REGION --build-arg REACT_APP_ATTACHMENTS_S3_BUCKET_NAME=$REACT_APP_ATTACHMENTS_S3_BUCKET_NAME --build-arg REACT_APP_API_CHIME_URL=$REACT_APP_API_CHIME_URL
+      - docker tag $ECR_URL/$REPO_NAME:latest $ECR_URL/$REPO_NAME:$IMAGE_TAG
+
+  post_build:
+    commands:
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_URL
+      - docker push $ECR_URL/$REPO_NAME:latest
+      - docker push $ECR_URL/$REPO_NAME:$IMAGE_TAG
+      - printf '{"ImageURI":"%s"}' $ECR_URL/$REPO_NAME:$IMAGE_TAG > codepipeline/dev/imageDetail.json
+      - echo "Success"
+
+artifacts:
+  base-directory: codepipeline/dev/
+  files:
+    - taskdef.json
+    - appspec.yaml
+    - imageDetail.json
